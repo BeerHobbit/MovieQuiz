@@ -2,12 +2,36 @@ import UIKit
 
 final class MovieQuizViewController: UIViewController {
     
+    //MARK: - Structs
+    
+    private struct QuizQuestion {
+        let image: String
+        let text: String
+        let correctAnswer: Bool
+    }
+    
+    private struct QuizStepViewModel {
+        let image: UIImage
+        let question: String
+        let questionNumber: String
+    }
+    
+    private struct QuizResultViewModel {
+        let title: String
+        let text: String
+        let buttonText: String
+    }
+    
+    //MARK: - @IB Outlets
+    
     @IBOutlet private weak var questionTitleLabel: UILabel!
     @IBOutlet private weak var indexLabel: UILabel!
     @IBOutlet private weak var previewImage: UIImageView!
     @IBOutlet private weak var questionLabel: UILabel!
     @IBOutlet private weak var noButton: UIButton!
     @IBOutlet private weak var yesButton: UIButton!
+    
+    //MARK: - Private Properties
     
     private var currentQuestionIndex = 0
     private var correctAnswers = 0
@@ -54,16 +78,31 @@ final class MovieQuizViewController: UIViewController {
             correctAnswer: false)
     ]
     
+    //MARK: - View Life Cycles
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupFonts()
+        setupViews()
+        let firstQuestion = questions[currentQuestionIndex]
+        let viewModel = convert(model: firstQuestion)
+        show(quiz: viewModel)
+    }
+    
+    //MARK: - Private Methods
+    
+    private func setupFonts() {
         noButton.titleLabel?.font = UIFont(name: "YSDisplay-Medium", size: 20) ?? UIFont.systemFont(ofSize: 20, weight: .medium)
         yesButton.titleLabel?.font = UIFont(name: "YSDisplay-Medium", size: 20) ?? UIFont.systemFont(ofSize: 20, weight: .medium)
         questionTitleLabel.font = UIFont(name: "YSDisplay-Medium", size: 20) ?? UIFont.systemFont(ofSize: 20, weight: .medium)
         indexLabel.font = UIFont(name: "YSDisplay-Medium", size: 20) ?? UIFont.systemFont(ofSize: 20, weight: .medium)
         questionLabel.font = UIFont(name: "YSDisplay-Bold", size: 23) ?? UIFont.systemFont(ofSize: 23, weight: .bold)
-        let firstQuestion = questions[currentQuestionIndex]
-        let viewModel = convert(model: firstQuestion)
-        show(quiz: viewModel)
+    }
+    
+    private func setupViews() {
+        previewImage.layer.cornerRadius = 20
+        noButton.layer.cornerRadius = 15
+        yesButton.layer.cornerRadius = 15
     }
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
@@ -74,20 +113,26 @@ final class MovieQuizViewController: UIViewController {
         )
         return questionStep
     }
+    
     private func show(quiz step: QuizStepViewModel) {
         previewImage.image = step.image
         questionLabel.text = step.question
         indexLabel.text = step.questionNumber
     }
+    
     private func showAnswerResult(isCorrect: Bool) {
         previewImage.layer.masksToBounds = true
         previewImage.layer.borderWidth = 8
         previewImage.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
         correctAnswers = isCorrect ? correctAnswers + 1 : correctAnswers
+        changeStateButtons(isEnabled: false)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.showNextQuestionOrResults()
+            self.previewImage.layer.borderWidth = 0
+            self.changeStateButtons(isEnabled: true)
         }
     }
+    
     private func showNextQuestionOrResults() {
         if currentQuestionIndex == questions.count - 1 {
             let viewModel = QuizResultViewModel(
@@ -100,9 +145,9 @@ final class MovieQuizViewController: UIViewController {
             let nextQuestion = questions[currentQuestionIndex]
             let viewModel = convert(model: nextQuestion)
             show(quiz: viewModel)
-            previewImage.layer.borderWidth = 0
         }
     }
+    
     private func show(quiz result: QuizResultViewModel) {
         let alert = UIAlertController(
             title: result.title,
@@ -119,33 +164,23 @@ final class MovieQuizViewController: UIViewController {
         self.present(alert, animated: true, completion: nil)
     }
     
+    private func changeStateButtons(isEnabled: Bool) {
+        yesButton.isEnabled = isEnabled
+        noButton.isEnabled = isEnabled
+    }
+    
+    //MARK: - IB Actions
+    
     @IBAction private func noButtonClicked(_ sender: UIButton) {
         let userAnswer = false
         let currentQuestion = questions[currentQuestionIndex]
         showAnswerResult(isCorrect: userAnswer == currentQuestion.correctAnswer)
     }
+    
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
         let userAnswer = true
         let currentQuestion = questions[currentQuestionIndex]
         showAnswerResult(isCorrect: userAnswer == currentQuestion.correctAnswer)
     }
-    
-}
 
-fileprivate struct QuizQuestion {
-    let image: String
-    let text: String
-    let correctAnswer: Bool
-}
-
-fileprivate struct QuizStepViewModel {
-    let image: UIImage
-    let question: String
-    let questionNumber: String
-}
-
-fileprivate struct QuizResultViewModel {
-    let title: String
-    let text: String
-    let buttonText: String
 }
