@@ -1,6 +1,11 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
+final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, AlertPresenterDelegate {
+    
+    // MARK: - AlertPresenterDelegate
+    
+    var alertModel: AlertModel?
+    var viewControllerForPresenting: UIViewController? { self }
     
     // MARK: - @IB Outlets
     
@@ -17,6 +22,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     private var correctAnswers: Int = 0
     private let questionsAmount: Int = 10
     private var questionFactory: QuestionFactoryProtocol?
+    private var alertPresenter: AlertPresenterProtocol?
     private var currentQuestion: QuizQuestion?
     
     // MARK: - View Life Cycles
@@ -30,13 +36,18 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
         let questionFactory = QuestionFactory()
         questionFactory.delegate = self
         self.questionFactory = questionFactory
+        
+        let alertPresenter = AlertPresenter()
+        alertPresenter.delegate = self
+        self.alertPresenter = alertPresenter
+        
         questionFactory.requestNextQuestion()
     }
     
     // MARK: - QuestionFactoryDelegate
     
     func didRecieveNextQuestion(question: QuizQuestion?) {
-        guard let question = question else { return }
+        guard let question else { return }
         currentQuestion = question
         let viewModel = convert(model: question)
         DispatchQueue.main.async { [weak self] in
@@ -91,30 +102,36 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     
     private func showNextQuestionOrResults() {
         if currentQuestionIndex == questionsAmount - 1 {
-            let viewModel = QuizResultViewModel(
-                title: "Этот раунд окончен",
-                text: "Ваш результат \(correctAnswers)/\(questionsAmount)",
-                buttonText: "Сыграть еще раз")
-            show(quiz: viewModel)
+            let viewModel = setupResultViewModel()
+            alertModel = setupAlertModel(from: viewModel)
+            alertPresenter?.presentAlert()
         } else {
             currentQuestionIndex += 1
             questionFactory?.requestNextQuestion()
         }
     }
     
-    private func show(quiz result: QuizResultViewModel) {
-        let alert = UIAlertController(
-            title: result.title,
-            message: result.text,
-            preferredStyle: .alert)
-        let action = UIAlertAction(title: result.buttonText, style: .default) { [weak self] _ in
-            guard let self else { return }
-            self.currentQuestionIndex = 0
-            self.correctAnswers = 0
-            self.questionFactory?.requestNextQuestion()
-        }
-        alert.addAction(action)
-        self.present(alert, animated: true, completion: nil)
+    private func setupResultViewModel() -> QuizResultViewModel {
+        let viewModel = QuizResultViewModel(
+            title: "Этот раунд окончен",
+            text: "Ваш результат \(correctAnswers)/\(questionsAmount)",
+            buttonText: "Сыграть еще раз")
+        return viewModel
+    }
+    
+    private func setupAlertModel(from viewModel: QuizResultViewModel) -> AlertModel {
+        let alertModel = AlertModel(
+            title: viewModel.title,
+            message: viewModel.text,
+            buttonText: viewModel.buttonText,
+            completion: { [weak self] in
+                guard let self else { return }
+                self.currentQuestionIndex = 0
+                self.correctAnswers = 0
+                self.questionFactory?.requestNextQuestion()
+            }
+        )
+        return alertModel
     }
     
     private func changeStateButtons(isEnabled: Bool) {
@@ -135,5 +152,5 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
         guard let currentQuestion = currentQuestion else { return }
         showAnswerResult(isCorrect: userAnswer == currentQuestion.correctAnswer)
     }
-
+    
 }
