@@ -33,26 +33,14 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        setupFonts()
-        setupViews()
-        
-        let questionFactory = QuestionFactory()
-        questionFactory.delegate = self
-        self.questionFactory = questionFactory
-        
-        let alertPresenter = AlertPresenter()
-        alertPresenter.delegate = self
-        self.alertPresenter = alertPresenter
-        
-        statisticService = StatisticService()
-        
-        questionFactory.requestNextQuestion()
+        configureUI()
+        configureDependencies()
+        loadFirstQuestion()
     }
     
     // MARK: - QuestionFactoryDelegate
     
-    func didRecieveNextQuestion(question: QuizQuestion?) {
+    func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question else { return }
         
         if shownQuestions.contains(question) {
@@ -60,7 +48,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             if questionRequestCount < maxRequestAttempts {
                 questionFactory?.requestNextQuestion()
             } else {
-                let viewModel = QuizResultViewModel(
+                let viewModel = AlertContentModel(
                     title: "Ошибка",
                     text: "Не удалось найти уникальный вопрос",
                     buttonText: "Попробовать еще раз"
@@ -81,7 +69,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         }
     }
     
-    // MARK: - Private Methods
+    // MARK: - Setup Methods
     
     private func setupFonts() {
         noButton.titleLabel?.font = UIFont(name: "YSDisplay-Medium", size: 20) ?? UIFont.systemFont(ofSize: 20, weight: .medium)
@@ -97,8 +85,31 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         yesButton.layer.cornerRadius = 15
     }
     
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        let questionStep = QuizStepViewModel(
+    private func configureUI() {
+        setupFonts()
+        setupViews()
+    }
+    
+    private func configureDependencies() {
+        let questionFactory = QuestionFactory()
+        questionFactory.delegate = self
+        self.questionFactory = questionFactory
+        
+        let alertPresenter = AlertPresenter()
+        alertPresenter.delegate = self
+        self.alertPresenter = alertPresenter
+        
+        statisticService = StatisticService()
+    }
+    
+    private func loadFirstQuestion() {
+        questionFactory?.requestNextQuestion()
+    }
+    
+    // MARK: - Private Methods
+    
+    private func convert(model: QuizQuestion) -> QuizStepModel {
+        let questionStep = QuizStepModel(
             image: UIImage(named: model.image) ?? UIImage(),
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
@@ -106,7 +117,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         return questionStep
     }
     
-    private func show(quiz step: QuizStepViewModel) {
+    private func show(quiz step: QuizStepModel) {
         previewImage.image = step.image
         questionLabel.text = step.question
         indexLabel.text = step.questionNumber
@@ -138,9 +149,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         }
     }
     
-    private func setupResultViewModel() -> QuizResultViewModel {
+    private func setupResultViewModel() -> AlertContentModel {
         guard let statisticService else {
-            return QuizResultViewModel(title: "", text: "", buttonText: "")
+            return AlertContentModel(title: "", text: "", buttonText: "")
         }
         
         statisticService.store(correct: correctAnswers, total: questionsAmount)
@@ -157,14 +168,14 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             Cредняя точность: \(totalAccuracy)%
             """
         
-        let viewModel = QuizResultViewModel(
+        let viewModel = AlertContentModel(
             title: "Этот раунд окончен",
             text: text,
             buttonText: "Сыграть еще раз")
         return viewModel
     }
     
-    private func setupAlertModel(from viewModel: QuizResultViewModel) -> AlertModel {
+    private func setupAlertModel(from viewModel: AlertContentModel) -> AlertModel {
         let alertModel = AlertModel(
             title: viewModel.title,
             message: viewModel.text,
@@ -185,18 +196,19 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         noButton.isEnabled = isEnabled
     }
     
-    // MARK: - IB Actions
-    
-    @IBAction private func noButtonClicked(_ sender: UIButton) {
-        let userAnswer = false
+    private func handleAnswer(_ userAnswer: Bool) {
         guard let currentQuestion = currentQuestion else { return }
         showAnswerResult(isCorrect: userAnswer == currentQuestion.correctAnswer)
     }
     
+    // MARK: - IB Actions
+    
+    @IBAction private func noButtonClicked(_ sender: UIButton) {
+        handleAnswer(false)
+    }
+    
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
-        let userAnswer = true
-        guard let currentQuestion = currentQuestion else { return }
-        showAnswerResult(isCorrect: userAnswer == currentQuestion.correctAnswer)
+        handleAnswer(true)
     }
     
 }

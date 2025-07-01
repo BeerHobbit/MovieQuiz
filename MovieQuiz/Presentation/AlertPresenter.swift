@@ -13,7 +13,6 @@ final class AlertPresenter: AlertPresenterProtocol {
             let alertModel = delegate?.alertModel,
             let viewController = delegate?.viewControllerForPresenting
         else { return }
-        
         let alert = UIAlertController(
             title: alertModel.title,
             message: alertModel.message,
@@ -23,7 +22,6 @@ final class AlertPresenter: AlertPresenterProtocol {
             alertModel.completion()
         }
         alert.addAction(action)
-        
         viewController.present(alert, animated: true, completion: nil)
     }
     
