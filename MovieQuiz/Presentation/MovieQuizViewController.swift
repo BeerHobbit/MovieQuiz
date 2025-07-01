@@ -21,9 +21,13 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     private var currentQuestionIndex: Int = 0
     private var correctAnswers: Int = 0
     private let questionsAmount: Int = 10
+    private var questionRequestCount: Int = 0
+    private var maxRequestAttempts: Int = 100
+    private var currentQuestion: QuizQuestion?
+    private var shownQuestions: Set<QuizQuestion> = []
     private var questionFactory: QuestionFactoryProtocol?
     private var alertPresenter: AlertPresenterProtocol?
-    private var currentQuestion: QuizQuestion?
+    private var statisticService: StatisticServiceProtocol?
     
     // MARK: - View Life Cycles
     
@@ -41,6 +45,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         alertPresenter.delegate = self
         self.alertPresenter = alertPresenter
         
+        statisticService = StatisticService()
+        
         questionFactory.requestNextQuestion()
     }
     
@@ -48,8 +54,28 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     func didRecieveNextQuestion(question: QuizQuestion?) {
         guard let question else { return }
+        
+        if shownQuestions.contains(question) {
+            questionRequestCount += 1
+            if questionRequestCount < maxRequestAttempts {
+                questionFactory?.requestNextQuestion()
+            } else {
+                let viewModel = QuizResultViewModel(
+                    title: "Ошибка",
+                    text: "Не удалось найти уникальный вопрос",
+                    buttonText: "Попробовать еще раз"
+                )
+                alertModel = setupAlertModel(from: viewModel)
+                alertPresenter?.presentAlert()
+            }
+            return
+        }
+        
+        questionRequestCount = 0
         currentQuestion = question
+        shownQuestions.insert(question)
         let viewModel = convert(model: question)
+        
         DispatchQueue.main.async { [weak self] in
             self?.show(quiz: viewModel)
         }
@@ -92,6 +118,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         previewImage.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
         correctAnswers = isCorrect ? correctAnswers + 1 : correctAnswers
         changeStateButtons(isEnabled: false)
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self else { return }
             self.showNextQuestionOrResults()
@@ -112,9 +139,27 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     }
     
     private func setupResultViewModel() -> QuizResultViewModel {
+        guard let statisticService else {
+            return QuizResultViewModel(title: "", text: "", buttonText: "")
+        }
+        
+        statisticService.store(correct: correctAnswers, total: questionsAmount)
+        let gamesCount = statisticService.gamesCount
+        let correct = statisticService.bestGame.correct
+        let total = statisticService.bestGame.total
+        let date = statisticService.bestGame.date.dateTimeString
+        let totalAccuracy = String(format: "%.2f", statisticService.totalAccuracy)
+        
+        let text = """
+            Ваш результат \(correctAnswers)/\(questionsAmount)
+            Количество сыгранных квизов: \(gamesCount)
+            Рекорд: \(correct)/\(total) (\(date))
+            Cредняя точность: \(totalAccuracy)%
+            """
+        
         let viewModel = QuizResultViewModel(
             title: "Этот раунд окончен",
-            text: "Ваш результат \(correctAnswers)/\(questionsAmount)",
+            text: text,
             buttonText: "Сыграть еще раз")
         return viewModel
     }
@@ -128,6 +173,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
                 guard let self else { return }
                 self.currentQuestionIndex = 0
                 self.correctAnswers = 0
+                self.shownQuestions = []
                 self.questionFactory?.requestNextQuestion()
             }
         )

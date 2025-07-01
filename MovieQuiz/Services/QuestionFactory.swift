@@ -2,7 +2,11 @@ import Foundation
 
 class QuestionFactory: QuestionFactoryProtocol {
     
+    //MARK: - Public Properties
+    
     weak var delegate: QuestionFactoryDelegate?
+    
+    //MARK: - Private Properties
     
     private let questions: [QuizQuestion] = [
         QuizQuestion(
@@ -46,6 +50,8 @@ class QuestionFactory: QuestionFactoryProtocol {
             text: "Рейтинг этого фильма больше чем 6?",
             correctAnswer: false)
     ]
+    
+    //MARK: - Public Methods
     
     func requestNextQuestion() {
         guard let index = (0..<questions.count).randomElement() else {
