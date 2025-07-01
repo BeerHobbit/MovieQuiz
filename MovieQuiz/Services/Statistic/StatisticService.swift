@@ -7,7 +7,7 @@ final class StatisticService {
     private let storage: UserDefaults = .standard
     
     private enum Keys: String {
-        case correctAnswers
+        case correctAnswersTotal
         case questionsTotal
         case gamesCount
         case correct
@@ -15,12 +15,12 @@ final class StatisticService {
         case date
     }
     
-    private var correctAnswers: Int {
+    private var correctAnswersTotal: Int {
         get {
-            storage.integer(forKey: Keys.correctAnswers.rawValue)
+            storage.integer(forKey: Keys.correctAnswersTotal.rawValue)
         }
         set {
-            storage.set(newValue, forKey: Keys.correctAnswers.rawValue)
+            storage.set(newValue, forKey: Keys.correctAnswersTotal.rawValue)
         }
     }
     
@@ -65,13 +65,13 @@ extension StatisticService: StatisticServiceProtocol {
     
     var totalAccuracy: Double {
         guard gamesCount != 0 else { return 0 }
-        return Double(correctAnswers) / Double(questionsTotal) * 100
+        return Double(correctAnswersTotal) / Double(questionsTotal) * 100
     }
     
     //MARK: - Public Methods
     
     func store(correct count: Int, total amount: Int) {
-        correctAnswers += count
+        correctAnswersTotal += count
         questionsTotal += amount
         gamesCount += 1
         let currentGame = GameResult(
