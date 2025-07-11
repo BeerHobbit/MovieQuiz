@@ -22,11 +22,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     private var currentQuestionIndex: Int = 0
     private var correctAnswers: Int = 0
     private let questionsAmount: Int = 10
-    private var questionRequestCount: Int = 0
-    private var maxRequestAttempts: Int = 100
     private var dataIsLoaded: Bool = false
     private var currentQuestion: QuizQuestion?
-    private var shownQuestions: Set<QuizQuestion> = []
     private var questionFactory: QuestionFactoryProtocol?
     private var alertPresenter: AlertPresenterProtocol?
     private var statisticService: StatisticServiceProtocol?
@@ -44,20 +41,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question else { return }
-        
-        if shownQuestions.contains(question) {
-            questionRequestCount += 1
-            if questionRequestCount < maxRequestAttempts {
-                questionFactory?.requestNextQuestion()
-            } else {
-                noUniqueQuestionsError()
-            }
-            return
-        }
-        
-        questionRequestCount = 0
         currentQuestion = question
-        shownQuestions.insert(question)
         let viewModel = convert(model: question)
         
         DispatchQueue.main.async { [weak self] in
@@ -72,6 +56,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     }
     
     func didFailToLoadData(with error: Error) {
+        showLoadingIndicator(false)
         showNetworkError(message: error.localizedDescription)
         dataIsLoaded = false
     }
@@ -194,14 +179,12 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
                 guard let self else { return }
                 self.currentQuestionIndex = 0
                 self.correctAnswers = 0
-                self.shownQuestions = []
-                if dataIsLoaded {
+                if self.dataIsLoaded {
                     self.questionFactory?.requestNextQuestion()
                 } else {
                     self.loadDataAndFirstQuestion()
                 }
-            }
-        )
+            })
         return alertModel
     }
     
@@ -221,20 +204,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     }
     
     private func showNetworkError(message: String) {
-        showLoadingIndicator(false)
         let alertContent = AlertContentModel(
             title: "Ошибка",
             text: message,
-            buttonText: "Попробовать еще раз"
-        )
-        alertModel = setupAlertModel(from: alertContent)
-        alertPresenter?.presentAlert()
-    }
-    
-    private func noUniqueQuestionsError() {
-        let alertContent = AlertContentModel(
-            title: "Ошибка",
-            text: "Не удалось найти уникальный вопрос",
             buttonText: "Попробовать еще раз"
         )
         alertModel = setupAlertModel(from: alertContent)
