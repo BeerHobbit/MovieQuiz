@@ -15,6 +15,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     @IBOutlet private weak var questionLabel: UILabel!
     @IBOutlet private weak var noButton: UIButton!
     @IBOutlet private weak var yesButton: UIButton!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Private Properties
     
@@ -23,6 +24,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     private let questionsAmount: Int = 10
     private var questionRequestCount: Int = 0
     private var maxRequestAttempts: Int = 100
+    private var dataIsLoaded: Bool = false
     private var currentQuestion: QuizQuestion?
     private var shownQuestions: Set<QuizQuestion> = []
     private var questionFactory: QuestionFactoryProtocol?
@@ -35,7 +37,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         super.viewDidLoad()
         configureUI()
         configureDependencies()
-        loadFirstQuestion()
+        loadDataAndFirstQuestion()
     }
     
     // MARK: - QuestionFactoryDelegate
@@ -48,13 +50,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             if questionRequestCount < maxRequestAttempts {
                 questionFactory?.requestNextQuestion()
             } else {
-                let viewModel = AlertContentModel(
-                    title: "Ошибка",
-                    text: "Не удалось найти уникальный вопрос",
-                    buttonText: "Попробовать еще раз"
-                )
-                alertModel = setupAlertModel(from: viewModel)
-                alertPresenter?.presentAlert()
+                noUniqueQuestionsError()
             }
             return
         }
@@ -67,6 +63,17 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         DispatchQueue.main.async { [weak self] in
             self?.show(quiz: viewModel)
         }
+    }
+    
+    func didLoadDataFromServer(){
+        showLoadingIndicator(false)
+        questionFactory?.requestNextQuestion()
+        dataIsLoaded = true
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription)
+        dataIsLoaded = false
     }
     
     // MARK: - Setup Methods
@@ -91,8 +98,10 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     }
     
     private func configureDependencies() {
-        let questionFactory = QuestionFactory()
-        questionFactory.delegate = self
+        let questionFactory = QuestionFactory(
+            moviesLoader: MoviesLoader(),
+            delegate: self
+        )
         self.questionFactory = questionFactory
         
         let alertPresenter = AlertPresenter()
@@ -102,15 +111,16 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         statisticService = StatisticService()
     }
     
-    private func loadFirstQuestion() {
-        questionFactory?.requestNextQuestion()
-    }
+   private func loadDataAndFirstQuestion() {
+       showLoadingIndicator(true)
+       questionFactory?.loadData()
+   }
     
     // MARK: - Private Methods
     
     private func convert(model: QuizQuestion) -> QuizStepModel {
         let questionStep = QuizStepModel(
-            image: UIImage(named: model.image) ?? UIImage(),
+            image: UIImage(data: model.image) ?? UIImage(),
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
         )
@@ -140,8 +150,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     private func showNextQuestionOrResults() {
         if currentQuestionIndex == questionsAmount - 1 {
-            let viewModel = setupResultViewModel()
-            alertModel = setupAlertModel(from: viewModel)
+            let alertContent = setupResultAlertContent()
+            alertModel = setupAlertModel(from: alertContent)
             alertPresenter?.presentAlert()
         } else {
             currentQuestionIndex += 1
@@ -149,7 +159,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         }
     }
     
-    private func setupResultViewModel() -> AlertContentModel {
+    private func setupResultAlertContent() -> AlertContentModel {
         guard let statisticService else {
             return AlertContentModel(title: "", text: "", buttonText: "")
         }
@@ -168,24 +178,28 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             Cредняя точность: \(totalAccuracy)%
             """
         
-        let viewModel = AlertContentModel(
+        let alertContent = AlertContentModel(
             title: "Этот раунд окончен",
             text: text,
             buttonText: "Сыграть еще раз")
-        return viewModel
+        return alertContent
     }
     
-    private func setupAlertModel(from viewModel: AlertContentModel) -> AlertModel {
+    private func setupAlertModel(from alertContent: AlertContentModel) -> AlertModel {
         let alertModel = AlertModel(
-            title: viewModel.title,
-            message: viewModel.text,
-            buttonText: viewModel.buttonText,
+            title: alertContent.title,
+            message: alertContent.text,
+            buttonText: alertContent.buttonText,
             completion: { [weak self] in
                 guard let self else { return }
                 self.currentQuestionIndex = 0
                 self.correctAnswers = 0
                 self.shownQuestions = []
-                self.questionFactory?.requestNextQuestion()
+                if dataIsLoaded {
+                    self.questionFactory?.requestNextQuestion()
+                } else {
+                    self.loadDataAndFirstQuestion()
+                }
             }
         )
         return alertModel
@@ -199,6 +213,32 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     private func handleAnswer(_ userAnswer: Bool) {
         guard let currentQuestion = currentQuestion else { return }
         showAnswerResult(isCorrect: userAnswer == currentQuestion.correctAnswer)
+    }
+    
+    private func showLoadingIndicator(_ condition: Bool) {
+        activityIndicator.isHidden = !condition
+        condition ? activityIndicator.startAnimating() : activityIndicator.stopAnimating()
+    }
+    
+    private func showNetworkError(message: String) {
+        showLoadingIndicator(false)
+        let alertContent = AlertContentModel(
+            title: "Ошибка",
+            text: message,
+            buttonText: "Попробовать еще раз"
+        )
+        alertModel = setupAlertModel(from: alertContent)
+        alertPresenter?.presentAlert()
+    }
+    
+    private func noUniqueQuestionsError() {
+        let alertContent = AlertContentModel(
+            title: "Ошибка",
+            text: "Не удалось найти уникальный вопрос",
+            buttonText: "Попробовать еще раз"
+        )
+        alertModel = setupAlertModel(from: alertContent)
+        alertPresenter?.presentAlert()
     }
     
     // MARK: - IB Actions
