@@ -30,6 +30,7 @@ struct MoviesLoader: MoviesLoading {
                     handler(.success(mostPopularMovies))
                 } catch {
                     handler(.failure(error))
+                    print(error)
                 }
             case .failure(let error):
                 handler(.failure(error))

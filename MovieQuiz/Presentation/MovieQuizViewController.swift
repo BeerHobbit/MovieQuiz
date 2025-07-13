@@ -57,7 +57,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     func didFailToLoadData(with error: Error) {
         showLoadingIndicator(false)
-        showNetworkError(message: error.localizedDescription)
+        showNetworkError()
         dataIsLoaded = false
     }
     
@@ -75,6 +75,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         previewImage.layer.cornerRadius = 20
         noButton.layer.cornerRadius = 15
         yesButton.layer.cornerRadius = 15
+        activityIndicator.hidesWhenStopped = true
     }
     
     private func configureUI() {
@@ -199,14 +200,13 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     }
     
     private func showLoadingIndicator(_ condition: Bool) {
-        activityIndicator.isHidden = !condition
         condition ? activityIndicator.startAnimating() : activityIndicator.stopAnimating()
     }
     
-    private func showNetworkError(message: String) {
+    private func showNetworkError() {
         let alertContent = AlertContentModel(
-            title: "Ошибка",
-            text: message,
+            title: "Что-то пошло не так(",
+            text: "Невозможно загрузить данные",
             buttonText: "Попробовать еще раз"
         )
         alertModel = setupAlertModel(from: alertContent)

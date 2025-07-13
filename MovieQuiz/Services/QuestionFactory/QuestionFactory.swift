@@ -2,6 +2,31 @@ import Foundation
 
 final class QuestionFactory: QuestionFactoryProtocol {
     
+    //MARK: - Private Custom Types
+    
+    private enum RatingCompression: CaseIterable {
+        case greater
+        case less
+        
+        var questionText: String {
+            switch self {
+            case .greater:
+                return "Рейтинг этого фильма больше чем"
+            case .less:
+                return "Рейтинг этого фильма меньше чем"
+            }
+        }
+        
+        func isCorrect(rating: Float, comparedTo value: Float) -> Bool{
+            switch self {
+            case .greater:
+                return rating > value
+            case .less:
+                return rating < value
+            }
+        }
+    }
+    
     //MARK: - Private Properties
     
     private let moviesLoader: MoviesLoading
@@ -77,9 +102,10 @@ final class QuestionFactory: QuestionFactoryProtocol {
             }
             
             let rating = Float(movie.rating) ?? 0
-            let randomRating = (6..<10).randomElement() ?? 7
-            let text = "Рейтинг этого фильма больше чем \(randomRating)?"
-            let correctAnswer = rating > Float(randomRating)
+            let randomRating = Float((6..<10).randomElement() ?? 7)
+            let compression = RatingCompression.allCases.randomElement() ?? .greater
+            let text = "\(compression.questionText) \(Int(randomRating))?"
+            let correctAnswer = compression.isCorrect(rating: rating, comparedTo: randomRating)
             
             let question = QuizQuestion(
                 image: imageData,
@@ -96,15 +122,20 @@ final class QuestionFactory: QuestionFactoryProtocol {
     
     func loadData() {
         moviesLoader.loadMovies { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                switch result {
-                case .success(let mostPopularMovies):
-                    self.movies = mostPopularMovies.items
+            guard let self else { return }
+            switch result {
+                
+            case .success(let mostPopularMovies):
+                self.movies = mostPopularMovies.items
+                DispatchQueue.main.async {
                     self.delegate?.didLoadDataFromServer()
-                case .failure(let error):
+                }
+                
+            case .failure(let error):
+                DispatchQueue.main.async {
                     self.delegate?.didFailToLoadData(with: error)
                 }
+                
             }
         }
     }
