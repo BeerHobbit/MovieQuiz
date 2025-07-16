@@ -105,8 +105,16 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     // MARK: - Private Methods
     
     private func convert(model: QuizQuestion) -> QuizStepModel {
+        var image: UIImage
+        if let loadedImage = UIImage(data: model.image) {
+            image = loadedImage
+        } else {
+            image = UIImage()
+            print("Failed to load image")
+            showImageDownloadError()
+        }
         let questionStep = QuizStepModel(
-            image: UIImage(data: model.image) ?? UIImage(),
+            image: image,
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
         )
@@ -125,12 +133,14 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         previewImage.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
         correctAnswers = isCorrect ? correctAnswers + 1 : correctAnswers
         changeStateButtons(isEnabled: false)
+        showLoadingIndicator(true)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self else { return }
             self.showNextQuestionOrResults()
             self.previewImage.layer.borderWidth = 0
             self.changeStateButtons(isEnabled: true)
+            self.showLoadingIndicator(false)
         }
     }
     
@@ -189,6 +199,29 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         return alertModel
     }
     
+    private func showNetworkError() {
+        let alertContent = AlertContentModel(
+            title: "Что-то пошло не так(",
+            text: "Невозможно загрузить данные",
+            buttonText: "Попробовать еще раз"
+        )
+        alertModel = setupAlertModel(from: alertContent)
+        alertPresenter?.presentAlert()
+    }
+    
+    private func showImageDownloadError() {
+        let alertModel = AlertModel(
+            title: "Что-то пошло не так(",
+            message: "Невозможно загрузить данные",
+            buttonText: "Попробовать еще раз",
+            completion: { [weak self] in
+                guard let self else { return }
+                didReceiveNextQuestion(question: currentQuestion)
+            })
+        self.alertModel = alertModel
+        alertPresenter?.presentAlert()
+    }
+    
     private func changeStateButtons(isEnabled: Bool) {
         yesButton.isEnabled = isEnabled
         noButton.isEnabled = isEnabled
@@ -203,15 +236,6 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         condition ? activityIndicator.startAnimating() : activityIndicator.stopAnimating()
     }
     
-    private func showNetworkError() {
-        let alertContent = AlertContentModel(
-            title: "Что-то пошло не так(",
-            text: "Невозможно загрузить данные",
-            buttonText: "Попробовать еще раз"
-        )
-        alertModel = setupAlertModel(from: alertContent)
-        alertPresenter?.presentAlert()
-    }
     
     // MARK: - IB Actions
     
