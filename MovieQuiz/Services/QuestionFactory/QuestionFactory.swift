@@ -27,6 +27,18 @@ final class QuestionFactory: QuestionFactoryProtocol {
         }
     }
     
+    private enum KeyError: Error {
+        case invalidAPIKey(String)
+        
+        func printError() {
+            switch self {
+            case .invalidAPIKey(let message):
+                print(message)
+            }
+        }
+        
+    }
+    
     //MARK: - Private Properties
     
     private let moviesLoader: MoviesLoading
@@ -126,9 +138,17 @@ final class QuestionFactory: QuestionFactoryProtocol {
             switch result {
                 
             case .success(let mostPopularMovies):
-                self.movies = mostPopularMovies.items
-                DispatchQueue.main.async {
-                    self.delegate?.didLoadDataFromServer()
+                if mostPopularMovies.hasError {
+                    let keyError = KeyError.invalidAPIKey(mostPopularMovies.errorMessage)
+                    keyError.printError()
+                    DispatchQueue.main.async {
+                        self.delegate?.didFailToLoadData(with: keyError)
+                    }
+                } else {
+                    self.movies = mostPopularMovies.items
+                    DispatchQueue.main.async {
+                        self.delegate?.didLoadDataFromServer()
+                    }
                 }
                 
             case .failure(let error):

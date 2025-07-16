@@ -3,6 +3,9 @@ import Foundation
 struct MostPopularMovies: Codable {
     let errorMessage: String
     let items: [MostPopularMovie]
+    var hasError: Bool {
+        return !errorMessage.isEmpty
+    }
 }
 
 struct MostPopularMovie: Codable {
