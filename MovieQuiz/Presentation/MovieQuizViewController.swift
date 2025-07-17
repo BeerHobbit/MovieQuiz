@@ -105,14 +105,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     // MARK: - Private Methods
     
     private func convert(model: QuizQuestion) -> QuizStepModel {
-        var image: UIImage
-        if let loadedImage = UIImage(data: model.image) {
-            image = loadedImage
-        } else {
-            image = UIImage()
-            print("Failed to load image")
-            showImageDownloadError()
-        }
+        let image = UIImage(data: model.image) ?? UIImage()
         let questionStep = QuizStepModel(
             image: image,
             question: model.text,
@@ -206,19 +199,6 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             buttonText: "Попробовать еще раз"
         )
         alertModel = setupAlertModel(from: alertContent)
-        alertPresenter?.presentAlert()
-    }
-    
-    private func showImageDownloadError() {
-        let alertModel = AlertModel(
-            title: "Что-то пошло не так(",
-            message: "Невозможно загрузить данные",
-            buttonText: "Попробовать еще раз",
-            completion: { [weak self] in
-                guard let self else { return }
-                didReceiveNextQuestion(question: currentQuestion)
-            })
-        self.alertModel = alertModel
         alertPresenter?.presentAlert()
     }
     
