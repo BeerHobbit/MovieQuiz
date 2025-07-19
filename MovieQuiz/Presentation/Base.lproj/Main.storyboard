@@ -39,12 +39,11 @@
                                     </stackView>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Kjy-2p-S3V" userLabel="Preview Image">
                                         <rect key="frame" x="0.0" y="44" width="374" height="561"/>
-                                        <color key="backgroundColor" name="YP White (iOS)"/>
                                         <constraints>
                                             <constraint firstAttribute="width" secondItem="Kjy-2p-S3V" secondAttribute="height" multiplier="2:3" id="ZDd-Ki-Bc3"/>
                                         </constraints>
                                     </imageView>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Рейтинг этого фильма меньше чем 5?" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VNe-5b-rTk" userLabel="Question Label">
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Рейтинг этого фильма больше чем 7?" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VNe-5b-rTk" userLabel="Question Label">
                                         <rect key="frame" x="0.0" y="625" width="374" height="17"/>
                                         <fontDescription key="fontDescription" type="boldSystem" pointSize="23"/>
                                         <color key="textColor" name="YP White (iOS)"/>
@@ -87,17 +86,24 @@
                                     </stackView>
                                 </subviews>
                             </stackView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="oon-Cm-VIr">
+                                <rect key="frame" x="197" y="438" width="20" height="20"/>
+                                <color key="color" name="YP White (iOS)"/>
+                            </activityIndicatorView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" name="YP Black (iOS)"/>
                         <constraints>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="xsk-Rx-VId" secondAttribute="trailing" constant="20" id="BMV-WW-lTe"/>
+                            <constraint firstItem="oon-Cm-VIr" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="CvD-a0-mRj"/>
                             <constraint firstItem="xsk-Rx-VId" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="10" id="GPB-sr-UWE"/>
                             <constraint firstItem="xsk-Rx-VId" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="LJO-KU-59Y"/>
+                            <constraint firstItem="oon-Cm-VIr" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="YNW-WG-Q8y"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="xsk-Rx-VId" secondAttribute="bottom" id="Yzg-Fc-e0q"/>
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="activityIndicator" destination="oon-Cm-VIr" id="79s-qh-j7E"/>
                         <outlet property="indexLabel" destination="Okp-Yp-YCm" id="Wks-O8-98H"/>
                         <outlet property="noButton" destination="NKD-AC-jfH" id="2Qy-sn-qDb"/>
                         <outlet property="previewImage" destination="Kjy-2p-S3V" id="hFp-Mb-4Ko"/>

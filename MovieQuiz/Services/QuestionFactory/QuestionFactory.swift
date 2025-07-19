@@ -2,12 +2,50 @@ import Foundation
 
 final class QuestionFactory: QuestionFactoryProtocol {
     
-    //MARK: - Public Properties
+    //MARK: - Private Custom Types
     
-    weak var delegate: QuestionFactoryDelegate?
+    private enum RatingCompression: CaseIterable {
+        case greater
+        case less
+        
+        var questionText: String {
+            switch self {
+            case .greater:
+                return "Рейтинг этого фильма больше чем"
+            case .less:
+                return "Рейтинг этого фильма меньше чем"
+            }
+        }
+        
+        func isCorrect(rating: Float, comparedTo value: Float) -> Bool{
+            switch self {
+            case .greater:
+                return rating > value
+            case .less:
+                return rating < value
+            }
+        }
+    }
+    
+    private enum KeyError: Error {
+        case invalidAPIKey(String)
+        
+        func printError() {
+            switch self {
+            case .invalidAPIKey(let message):
+                print(message)
+            }
+        }
+        
+    }
     
     //MARK: - Private Properties
     
+    private let moviesLoader: MoviesLoading
+    private weak var delegate: QuestionFactoryDelegate?
+    private var movies: [MostPopularMovie] = []
+    
+    /*
     private let questions: [QuizQuestion] = [
         QuizQuestion(
             image: "The Godfather",
@@ -50,16 +88,79 @@ final class QuestionFactory: QuestionFactoryProtocol {
             text: "Рейтинг этого фильма больше чем 6?",
             correctAnswer: false)
     ]
+    */
+    
+    //MARK: - Initializer
+    
+    init(moviesLoader: MoviesLoading, delegate: QuestionFactoryDelegate?) {
+        self.moviesLoader = moviesLoader
+        self.delegate = delegate
+    }
     
     //MARK: - Public Methods
     
     func requestNextQuestion() {
-        guard let index = (0..<questions.count).randomElement() else {
-            delegate?.didReceiveNextQuestion(question: nil)
-            return
+        DispatchQueue.global().async { [weak self] in
+            guard let self else { return }
+            let index = (0..<self.movies.count).randomElement() ?? 0
+            
+            guard let movie = self.movies[safe: index] else { return }
+            
+            var imageData = Data()
+            do {
+                imageData = try Data(contentsOf: movie.resizedImageURL)
+            } catch {
+                print("Failed to load image")
+                DispatchQueue.main.async {
+                    self.delegate?.didFailToLoadData(with: error)
+                }
+            }
+            
+            let rating = Float(movie.rating) ?? 0
+            let randomRating = Float((6..<10).randomElement() ?? 7)
+            let compression = RatingCompression.allCases.randomElement() ?? .greater
+            let text = "\(compression.questionText) \(Int(randomRating))?"
+            let correctAnswer = compression.isCorrect(rating: rating, comparedTo: randomRating)
+            
+            let question = QuizQuestion(
+                image: imageData,
+                text: text,
+                correctAnswer: correctAnswer
+            )
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.delegate?.didReceiveNextQuestion(question: question)
+            }
         }
-        let question = questions[safe: index]
-        delegate?.didReceiveNextQuestion(question: question)
+    }
+    
+    func loadData() {
+        moviesLoader.loadMovies { [weak self] result in
+            guard let self else { return }
+            switch result {
+                
+            case .success(let mostPopularMovies):
+                if mostPopularMovies.hasError {
+                    let keyError = KeyError.invalidAPIKey(mostPopularMovies.errorMessage)
+                    keyError.printError()
+                    DispatchQueue.main.async {
+                        self.delegate?.didFailToLoadData(with: keyError)
+                    }
+                } else {
+                    self.movies = mostPopularMovies.items
+                    DispatchQueue.main.async {
+                        self.delegate?.didLoadDataFromServer()
+                    }
+                }
+                
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.delegate?.didFailToLoadData(with: error)
+                }
+                
+            }
+        }
     }
     
 }
