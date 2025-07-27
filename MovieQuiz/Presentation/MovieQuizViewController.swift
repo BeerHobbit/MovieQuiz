@@ -168,7 +168,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             """
         
         let alertContent = AlertContentModel(
-            title: "Этот раунд окончен",
+            title: "Этот раунд окончен!",
             text: text,
             buttonText: "Сыграть еще раз")
         return alertContent
