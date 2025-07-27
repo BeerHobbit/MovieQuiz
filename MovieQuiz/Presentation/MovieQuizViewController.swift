@@ -22,7 +22,6 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     private var correctAnswers: Int = 0
     private var dataIsLoaded: Bool = false
     private let presenter = MovieQuizPresenter()
-    private var currentQuestion: QuizQuestion?
     private var questionFactory: QuestionFactoryProtocol?
     private var alertPresenter: AlertPresenterProtocol?
     private var statisticService: StatisticServiceProtocol?
@@ -39,13 +38,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     // MARK: - QuestionFactoryDelegate
     
     func didReceiveNextQuestion(question: QuizQuestion?) {
-        guard let question else { return }
-        currentQuestion = question
-        let viewModel = presenter.convert(model: question)
-        
-        DispatchQueue.main.async { [weak self] in
-            self?.show(quiz: viewModel)
-        }
+        presenter.didReceiveNextQuestion(question: question)
     }
     
     func didLoadDataFromServer(){
@@ -83,6 +76,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     }
     
     private func configureDependencies() {
+        presenter.viewController = self
+        
         let questionFactory = QuestionFactory(
             moviesLoader: MoviesLoader(),
             delegate: self
@@ -103,13 +98,13 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     // MARK: - Private Methods
     
-    private func show(quiz step: QuizStepModel) {
+    func show(quiz step: QuizStepModel) {
         previewImage.image = step.image
         questionLabel.text = step.question
         indexLabel.text = step.questionNumber
     }
     
-    private func showAnswerResult(isCorrect: Bool) {
+    func showAnswerResult(isCorrect: Bool) {
         previewImage.layer.masksToBounds = true
         previewImage.layer.borderWidth = 8
         previewImage.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
@@ -196,11 +191,6 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         noButton.isEnabled = isEnabled
     }
     
-    private func handleAnswer(_ userAnswer: Bool) {
-        guard let currentQuestion = currentQuestion else { return }
-        showAnswerResult(isCorrect: userAnswer == currentQuestion.correctAnswer)
-    }
-    
     private func showLoadingIndicator(_ condition: Bool) {
         condition ? activityIndicator.startAnimating() : activityIndicator.stopAnimating()
     }
@@ -209,11 +199,11 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     // MARK: - IB Actions
     
     @IBAction private func noButtonClicked(_ sender: UIButton) {
-        handleAnswer(false)
+        presenter.didAnswer(isYes: false)
     }
     
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
-        handleAnswer(true)
+        presenter.didAnswer(isYes: true)
     }
     
 }
