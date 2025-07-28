@@ -68,6 +68,7 @@ extension StatisticService: StatisticServiceProtocol {
         return Double(correctAnswersTotal) / Double(questionsTotal) * 100
     }
     
+    
     //MARK: - Public Methods
     
     func store(correct count: Int, total amount: Int) {

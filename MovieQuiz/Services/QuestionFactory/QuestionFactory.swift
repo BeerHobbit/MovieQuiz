@@ -39,56 +39,13 @@ final class QuestionFactory: QuestionFactoryProtocol {
         
     }
     
+    
     //MARK: - Private Properties
     
     private let moviesLoader: MoviesLoading
     private weak var delegate: QuestionFactoryDelegate?
     private var movies: [MostPopularMovie] = []
     
-    /*
-    private let questions: [QuizQuestion] = [
-        QuizQuestion(
-            image: "The Godfather",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "The Dark Knight",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "Kill Bill",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "The Avengers",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "Deadpool",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "The Green Knight",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: true),
-        QuizQuestion(
-            image: "Old",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false),
-        QuizQuestion(
-            image: "The Ice Age Adventures of Buck Wild",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false),
-        QuizQuestion(
-            image: "Tesla",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false),
-        QuizQuestion(
-            image: "Vivarium",
-            text: "Рейтинг этого фильма больше чем 6?",
-            correctAnswer: false)
-    ]
-    */
     
     //MARK: - Initializer
     
@@ -96,6 +53,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
         self.moviesLoader = moviesLoader
         self.delegate = delegate
     }
+    
     
     //MARK: - Public Methods
     
@@ -112,7 +70,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
             } catch {
                 print("Failed to load image")
                 DispatchQueue.main.async {
-                    self.delegate?.didFailToLoadData(with: error)
+                    self.delegate?.didFailToLoadData()
                 }
             }
             
@@ -135,6 +93,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
         }
     }
     
+    
     func loadData() {
         moviesLoader.loadMovies { [weak self] result in
             guard let self else { return }
@@ -145,7 +104,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
                     let keyError = KeyError.invalidAPIKey(mostPopularMovies.errorMessage)
                     keyError.printError()
                     DispatchQueue.main.async {
-                        self.delegate?.didFailToLoadData(with: keyError)
+                        self.delegate?.didFailToLoadData()
                     }
                 } else {
                     self.movies = mostPopularMovies.items
@@ -154,9 +113,9 @@ final class QuestionFactory: QuestionFactoryProtocol {
                     }
                 }
                 
-            case .failure(let error):
+            case .failure(_):
                 DispatchQueue.main.async {
-                    self.delegate?.didFailToLoadData(with: error)
+                    self.delegate?.didFailToLoadData()
                 }
                 
             }

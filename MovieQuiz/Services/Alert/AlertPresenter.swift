@@ -6,6 +6,13 @@ final class AlertPresenter: AlertPresenterProtocol {
     
     weak var delegate: AlertPresenterDelegate?
     
+    
+    //MARK: - Initializer
+    init(delegate: AlertPresenterDelegate?) {
+        self.delegate = delegate
+    }
+    
+    
     // MARK: - Public Methods
     
     func presentAlert() {
@@ -16,8 +23,9 @@ final class AlertPresenter: AlertPresenterProtocol {
         let alert = UIAlertController(
             title: alertModel.title,
             message: alertModel.message,
-            preferredStyle: .alert)
-        
+            preferredStyle: .alert
+        )
+        alert.view.accessibilityIdentifier = "Game results"
         let action = UIAlertAction(title: alertModel.buttonText, style: .default) { _ in
             alertModel.completion()
         }
