@@ -6,6 +6,13 @@ final class AlertPresenter: AlertPresenterProtocol {
     
     weak var delegate: AlertPresenterDelegate?
     
+    
+    //MARK: - Initializer
+    init(delegate: AlertPresenterDelegate?) {
+        self.delegate = delegate
+    }
+    
+    
     // MARK: - Public Methods
     
     func presentAlert() {

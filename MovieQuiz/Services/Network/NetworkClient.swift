@@ -12,6 +12,7 @@ struct NetworkClient: NetworkRouting {
         case codeError
     }
     
+    
     //MARK: - Public Methods
     
     func fetch(url: URL, handler: @escaping (Result<Data, Error>) -> Void) {

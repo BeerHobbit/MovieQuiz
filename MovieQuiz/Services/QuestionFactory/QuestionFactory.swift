@@ -39,6 +39,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
         
     }
     
+    
     //MARK: - Private Properties
     
     private let moviesLoader: MoviesLoading
@@ -90,12 +91,14 @@ final class QuestionFactory: QuestionFactoryProtocol {
     ]
     */
     
+    
     //MARK: - Initializer
     
     init(moviesLoader: MoviesLoading, delegate: QuestionFactoryDelegate?) {
         self.moviesLoader = moviesLoader
         self.delegate = delegate
     }
+    
     
     //MARK: - Public Methods
     
@@ -112,7 +115,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
             } catch {
                 print("Failed to load image")
                 DispatchQueue.main.async {
-                    self.delegate?.didFailToLoadData(with: error)
+                    self.delegate?.didFailToLoadData()
                 }
             }
             
@@ -135,6 +138,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
         }
     }
     
+    
     func loadData() {
         moviesLoader.loadMovies { [weak self] result in
             guard let self else { return }
@@ -145,7 +149,7 @@ final class QuestionFactory: QuestionFactoryProtocol {
                     let keyError = KeyError.invalidAPIKey(mostPopularMovies.errorMessage)
                     keyError.printError()
                     DispatchQueue.main.async {
-                        self.delegate?.didFailToLoadData(with: keyError)
+                        self.delegate?.didFailToLoadData()
                     }
                 } else {
                     self.movies = mostPopularMovies.items
@@ -154,9 +158,9 @@ final class QuestionFactory: QuestionFactoryProtocol {
                     }
                 }
                 
-            case .failure(let error):
+            case .failure(_):
                 DispatchQueue.main.async {
-                    self.delegate?.didFailToLoadData(with: error)
+                    self.delegate?.didFailToLoadData()
                 }
                 
             }

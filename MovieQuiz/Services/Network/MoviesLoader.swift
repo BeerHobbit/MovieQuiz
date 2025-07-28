@@ -14,6 +14,7 @@ struct MoviesLoader: MoviesLoading {
         self.networkClient = networkClient
     }
     
+    
     //MARK: - URL
     
     private var mostPopularMoviesUrl: URL {
@@ -22,6 +23,7 @@ struct MoviesLoader: MoviesLoading {
         }
         return url
     }
+    
     
     //MARK: - Public Methods
     
