@@ -188,8 +188,8 @@
 		9D2322352E13F63600B76747 /* Statistic */ = {
 			isa = PBXGroup;
 			children = (
-				9D44F05D2E128A6100C1EDFF /* StatisticServiceProtocol.swift */,
 				9D44F0612E12958600C1EDFF /* StatisticService.swift */,
+				9D44F05D2E128A6100C1EDFF /* StatisticServiceProtocol.swift */,
 			);
 			path = Statistic;
 			sourceTree = "<group>";
@@ -197,9 +197,9 @@
 		9D2322362E13F66600B76747 /* QuestionFactory */ = {
 			isa = PBXGroup;
 			children = (
+				9D1E34002E0B2476005A8493 /* QuestionFactory.swift */,
 				9D3D25782E0D8742009F614B /* QuestionFactoryDelegate.swift */,
 				9D5170E62E0C09490040F05A /* QuestionFactoryProtocol.swift */,
-				9D1E34002E0B2476005A8493 /* QuestionFactory.swift */,
 			);
 			path = QuestionFactory;
 			sourceTree = "<group>";
