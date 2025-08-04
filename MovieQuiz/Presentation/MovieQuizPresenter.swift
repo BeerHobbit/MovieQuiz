@@ -15,10 +15,14 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     private var statisticService: StatisticServiceProtocol?
     private var alertPresenter: AlertPresenterProtocol?
     private var currentQuestion: QuizQuestion?
+    
     private var dataIsLoaded: Bool = false
     private let questionsAmount: Int = 10
     private var currentQuestionIndex: Int = 0
     private var correctAnswers: Int = 0
+    private var shownImages: Set<Data> = []
+    private var questionRequestCount = 0
+    private let maxRequestAttempts = 100
     
     
     // MARK: - Initializer
@@ -38,7 +42,15 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question else { return }
+        
+        guard isQuestionUnique(question) else {
+            handleRepeatedQuestion()
+            return
+        }
+        
+        questionRequestCount = 0
         currentQuestion = question
+        shownImages.insert(question.image)
         let viewModel = convert(model: question)
         
         DispatchQueue.main.async { [weak self] in
@@ -53,7 +65,7 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     }
     
     func didFailToLoadData() {
-        proceedToNetworkError()
+        proceedToAlert(model: makeNetworkErrorAlertModel())
         dataIsLoaded = false
     }
     
@@ -112,7 +124,7 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     
     private func proceedToNextQuestionOrResults() {
         if self.isLastQuestion() {
-            proceedToResults()
+            proceedToAlert(model: makeResultAlertModel())
         } else {
             self.switchToNextQuestion()
             questionFactory?.requestNextQuestion()
@@ -120,6 +132,7 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     }
     
     private func restartGame() {
+        shownImages = []
         currentQuestionIndex = 0
         correctAnswers = 0
         if dataIsLoaded {
@@ -147,6 +160,20 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
             """
         
         return resultMessage
+    }
+    
+    private func isQuestionUnique(_ question: QuizQuestion) -> Bool {
+        return !shownImages.contains(question.image)
+    }
+    
+    private func handleRepeatedQuestion() {
+        questionRequestCount += 1
+        
+        if questionRequestCount < maxRequestAttempts {
+            questionFactory?.requestNextQuestion()
+        } else {
+            proceedToAlert(model: makeNoUniqueQuestionsAlertModel())
+        }
     }
     
     
@@ -178,13 +205,20 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
         return alertModel
     }
     
-    private func proceedToResults() {
-        let model = makeResultAlertModel()
-        alertPresenter?.presentAlert(model: model)
+    private func makeNoUniqueQuestionsAlertModel() -> AlertModel {
+        let alertModel = AlertModel(
+            title: "Что-то пошло не так(",
+            message: "Не удалось найти уникальный вопрос",
+            buttonText: "Попробовать еще раз",
+            completion: { [weak self] in
+                guard let self else { return }
+                self.restartGame()
+            }
+        )
+        return alertModel
     }
     
-    private func proceedToNetworkError() {
-        let model = makeNetworkErrorAlertModel()
+    private func proceedToAlert(model: AlertModel) {
         alertPresenter?.presentAlert(model: model)
     }
     
