@@ -152,20 +152,24 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     
     //MARK: - Private Alert Methods
     
-    private func setupResultAlertContent() -> AlertContentModel {
-        let text = makeResultMessage()
-        let alertContent = AlertContentModel(
+    private func makeResultAlertModel() -> AlertModel {
+        let alertModel = AlertModel(
             title: "Этот раунд окончен!",
-            text: text,
-            buttonText: "Сыграть еще раз")
-        return alertContent
+            message: makeResultMessage(),
+            buttonText: "Сыграть еще раз",
+            completion: { [weak self] in
+                guard let self else { return }
+                self.restartGame()
+            }
+        )
+        return alertModel
     }
     
-    private func setupAlertModel(from alertContent: AlertContentModel) -> AlertModel {
+    private func makeNetworkErrorAlertModel() -> AlertModel {
         let alertModel = AlertModel(
-            title: alertContent.title,
-            message: alertContent.text,
-            buttonText: alertContent.buttonText,
+            title: "Что-то пошло не так(",
+            message: "Невозможно загрузить данные",
+            buttonText: "Попробовать еще раз",
             completion: { [weak self] in
                 guard let self else { return }
                 self.restartGame()
@@ -175,19 +179,13 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     }
     
     private func proceedToResults() {
-        let alertContent = setupResultAlertContent()
-        alertModel = setupAlertModel(from: alertContent)
-        alertPresenter?.presentAlert()
+        let model = makeResultAlertModel()
+        alertPresenter?.presentAlert(model: model)
     }
     
     private func proceedToNetworkError() {
-        let alertContent = AlertContentModel(
-            title: "Что-то пошло не так(",
-            text: "Невозможно загрузить данные",
-            buttonText: "Попробовать еще раз"
-        )
-        alertModel = setupAlertModel(from: alertContent)
-        alertPresenter?.presentAlert()
+        let model = makeNetworkErrorAlertModel()
+        alertPresenter?.presentAlert(model: model)
     }
     
 }
