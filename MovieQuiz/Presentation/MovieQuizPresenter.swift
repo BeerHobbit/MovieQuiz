@@ -15,10 +15,14 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     private var statisticService: StatisticServiceProtocol?
     private var alertPresenter: AlertPresenterProtocol?
     private var currentQuestion: QuizQuestion?
+    
     private var dataIsLoaded: Bool = false
     private let questionsAmount: Int = 10
     private var currentQuestionIndex: Int = 0
     private var correctAnswers: Int = 0
+    private var shownImages: Set<Data> = []
+    private var questionRequestCount = 0
+    private let maxRequestAttempts = 100
     
     
     // MARK: - Initializer
@@ -38,7 +42,15 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question else { return }
+        
+        guard isQuestionUnique(question) else {
+            handleRepeatedQuestion()
+            return
+        }
+        
+        questionRequestCount = 0
         currentQuestion = question
+        shownImages.insert(question.image)
         let viewModel = convert(model: question)
         
         DispatchQueue.main.async { [weak self] in
@@ -53,7 +65,7 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     }
     
     func didFailToLoadData() {
-        proceedToNetworkError()
+        proceedToAlert(model: makeNetworkErrorAlertModel())
         dataIsLoaded = false
     }
     
@@ -112,7 +124,7 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     
     private func proceedToNextQuestionOrResults() {
         if self.isLastQuestion() {
-            proceedToResults()
+            proceedToAlert(model: makeResultAlertModel())
         } else {
             self.switchToNextQuestion()
             questionFactory?.requestNextQuestion()
@@ -120,6 +132,7 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
     }
     
     private func restartGame() {
+        shownImages = []
         currentQuestionIndex = 0
         correctAnswers = 0
         if dataIsLoaded {
@@ -149,23 +162,28 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
         return resultMessage
     }
     
+    private func isQuestionUnique(_ question: QuizQuestion) -> Bool {
+        return !shownImages.contains(question.image)
+    }
+    
+    private func handleRepeatedQuestion() {
+        questionRequestCount += 1
+        
+        if questionRequestCount < maxRequestAttempts {
+            questionFactory?.requestNextQuestion()
+        } else {
+            proceedToAlert(model: makeNoUniqueQuestionsAlertModel())
+        }
+    }
+    
     
     //MARK: - Private Alert Methods
     
-    private func setupResultAlertContent() -> AlertContentModel {
-        let text = makeResultMessage()
-        let alertContent = AlertContentModel(
-            title: "Этот раунд окончен!",
-            text: text,
-            buttonText: "Сыграть еще раз")
-        return alertContent
-    }
-    
-    private func setupAlertModel(from alertContent: AlertContentModel) -> AlertModel {
+    private func makeResultAlertModel() -> AlertModel {
         let alertModel = AlertModel(
-            title: alertContent.title,
-            message: alertContent.text,
-            buttonText: alertContent.buttonText,
+            title: "Этот раунд окончен!",
+            message: makeResultMessage(),
+            buttonText: "Сыграть еще раз",
             completion: { [weak self] in
                 guard let self else { return }
                 self.restartGame()
@@ -174,20 +192,34 @@ final class MovieQuizPresenter: AlertPresenterDelegate, QuestionFactoryDelegate 
         return alertModel
     }
     
-    private func proceedToResults() {
-        let alertContent = setupResultAlertContent()
-        alertModel = setupAlertModel(from: alertContent)
-        alertPresenter?.presentAlert()
+    private func makeNetworkErrorAlertModel() -> AlertModel {
+        let alertModel = AlertModel(
+            title: "Что-то пошло не так(",
+            message: "Невозможно загрузить данные",
+            buttonText: "Попробовать еще раз",
+            completion: { [weak self] in
+                guard let self else { return }
+                self.restartGame()
+            }
+        )
+        return alertModel
     }
     
-    private func proceedToNetworkError() {
-        let alertContent = AlertContentModel(
+    private func makeNoUniqueQuestionsAlertModel() -> AlertModel {
+        let alertModel = AlertModel(
             title: "Что-то пошло не так(",
-            text: "Невозможно загрузить данные",
-            buttonText: "Попробовать еще раз"
+            message: "Не удалось найти уникальный вопрос",
+            buttonText: "Попробовать еще раз",
+            completion: { [weak self] in
+                guard let self else { return }
+                self.restartGame()
+            }
         )
-        alertModel = setupAlertModel(from: alertContent)
-        alertPresenter?.presentAlert()
+        return alertModel
+    }
+    
+    private func proceedToAlert(model: AlertModel) {
+        alertPresenter?.presentAlert(model: model)
     }
     
 }
